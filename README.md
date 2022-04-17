@@ -39,7 +39,7 @@ async def main():
     info = await client.get_masterchain_info() # Gets masterchain info
     print(info.last) # Prints last block
     
-    await client.stop() # ALLWAYS call this method.
+    await client.stop() # ALWAYS call this method.
 
 
 if __name__ == "__main__":
