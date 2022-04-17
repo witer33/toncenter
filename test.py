@@ -1,17 +1,13 @@
-from toncenter.client import Client
-import time
+from src.toncenter.client import Client
 import asyncio
 
 
-client = Client(base_url="https://testnet.toncenter.com/api/v2/")
-
 async def main():
 
-    await client.start()
-
-    print((await client.get_masterchain_info()).last)
-
-    await client.close()
+    async with Client(open("main_api_token.txt").read()) as client:
+        for _ in range(30):
+            info = await client.get_masterchain_info()
+            print(info.last)
 
 
 if __name__ == "__main__":

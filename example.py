@@ -3,10 +3,10 @@ import asyncio
 
 
 async def main():
-    
+
     async with Client(open("main_api_token.txt").read()) as client:
-        info = await client.get_masterchain_info() # Gets masterchain info
-        print(info.last) # Prints last block
+        info = await client.get_masterchain_info()  # Gets masterchain info
+        print(info.last)  # Prints last block
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@ import aiohttp
 from dataclasses import dataclass
 from dataclasses_json import dataclass_json
 from typing import Optional, Union, List, Any
+import time
 
 
 class GenericException(Exception):
@@ -182,28 +183,52 @@ class BlockHeader:
 
 class Client:
     def __init__(
-        self, token: str = None, base_url: str = "https://toncenter.com/api/v2/"
+        self,
+        token: str = None,
+        base_url: str = "https://toncenter.com/api/v2/",
+        avoid_ratelimit: bool = True,
     ) -> None:
         self.base_url: str = base_url
         self.token: str = token
         self.client: aiohttp.ClientSession = None
+        if token:
+            self.requests_limit = 10
+        else:
+            self.requests_limit = 1
+        self.requests_count = 0
+        self.avoid_ratelimit = avoid_ratelimit
+
+    def check_ratelimit(self) -> bool:
+        if self.requests_count >= self.requests_limit:
+            return False
+        else:
+            self.requests_count += 1
+            return True
+
+    async def reset_ratelimit(self) -> None:
+        while True:
+            await asyncio.sleep(1.1)
+            self.requests_count = 0
 
     async def start(self) -> None:
         self.client: aiohttp.ClientSession = aiohttp.ClientSession()
+        asyncio.create_task(self.reset_ratelimit())
         if self.token:
             self.client.headers.update({"X-API-Key": self.token})
 
     async def close(self) -> None:
         await self.client.close()
-    
+
     async def __aenter__(self) -> "Client":
         await self.start()
         return self
-    
+
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         await self.close()
 
     async def get(self, url: str, params: dict) -> dict:
+        while not self.check_ratelimit() and self.avoid_ratelimit:
+            await asyncio.sleep(0.1)
         async with self.client.get(self.base_url + url, params=params) as response:
             response_json = await response.json()
             if response.status == 200 and response_json["ok"]:
@@ -216,6 +241,8 @@ class Client:
                 raise GenericException(response_json["error"])
 
     async def post(self, url: str, data: dict) -> dict:
+        while not self.check_ratelimit() and self.avoid_ratelimit:
+            await asyncio.sleep(0.1)
         async with self.client.post(self.base_url + url, json=data) as response:
             response_json = await response.json()
             if response.status == 200 and response_json["ok"]:
@@ -237,8 +264,8 @@ class Client:
 
     async def get_extended_address_info(self, address: str) -> FullAccountState:
         """
-        Similar to previous one but tries to parse additional information for known contract types. 
-        This method is based on tonlib's function getAccountState. 
+        Similar to previous one but tries to parse additional information for known contract types.
+        This method is based on tonlib's function getAccountState.
         For detecting wallets we recommend to use getWalletInformation.
         """
         return FullAccountState.from_dict(
@@ -247,7 +274,7 @@ class Client:
 
     async def get_wallet_information(self, address: str) -> WalletState:
         """
-        Retrieve wallet information. 
+        Retrieve wallet information.
         This method parses contract state and currently supports more wallet types than getExtendedAddressInformation: simple wallet, standart wallet, v3 wallet, v4 wallet.
         """
         return WalletState.from_dict(
@@ -394,46 +421,90 @@ class Client:
             args["root_hash"] = block_id.root_hash
         if block_id.file_hash:
             args["file_hash"] = block_id.file_hash
-        return BlockHeader.from_dict(
-            await self.get("getBlockHeader", args)
-        )
-    
-    async def try_locate_transaction(self, source: str, destination: str, created_lt: int) -> Transaction:
+        return BlockHeader.from_dict(await self.get("getBlockHeader", args))
+
+    async def try_locate_transaction(
+        self, source: str, destination: str, created_lt: int
+    ) -> Transaction:
         """
         Locate outcoming transaction of destination address by incoming message.
         """
         return Transaction.from_dict(
-            await self.get("tryLocateTx", {"source": source, "destination": destination, "created_lt": created_lt})
+            await self.get(
+                "tryLocateTx",
+                {
+                    "source": source,
+                    "destination": destination,
+                    "created_lt": created_lt,
+                },
+            )
         )
 
-    async def try_locate_source_transaction(self, source: str, destination: str, created_lt: int) -> Transaction:
+    async def try_locate_source_transaction(
+        self, source: str, destination: str, created_lt: int
+    ) -> Transaction:
         """
         Locate incoming transaction of source address by outcoming message.
         """
         return Transaction.from_dict(
-            await self.get("tryLocateSourceTx", {"source": source, "destination": destination, "created_lt": created_lt})
+            await self.get(
+                "tryLocateSourceTx",
+                {
+                    "source": source,
+                    "destination": destination,
+                    "created_lt": created_lt,
+                },
+            )
         )
-    
+
     async def run_get_method(self, address: str, method: str, stack: List[Any]) -> dict:
         """
         Run get method on smart contract.
         """
-        return await self.post("runGetMethod", {"address": address, "method": method, "stack": stack})
-    
+        return await self.post(
+            "runGetMethod", {"address": address, "method": method, "stack": stack}
+        )
+
     async def send_boc(self, boc: dict) -> dict:
         """
         Send serialized boc file: fully packed and serialized external message to blockchain.
         """
         return await self.post("sendBoc", {"boc": boc})
-    
-    async def send_query(self, address: str, body: str, init_code: Any = "", init_data: Any = "") -> dict:
+
+    async def send_query(
+        self, address: str, body: str, init_code: Any = "", init_data: Any = ""
+    ) -> dict:
         """
         Send query - unpacked external message. This method takes address, body and init-params (if any), packs it to external message and sends to network. All params should be boc-serialized.
         """
-        return await self.post("sendQuery", {"address": address, "body": body, "init_code": init_code, "init_data": init_data})
-    
-    async def estimate_fee(self, address: str, body: str, init_code: Any = "", init_data: Any = "", ignore_chksig: bool = True) -> dict:
+        return await self.post(
+            "sendQuery",
+            {
+                "address": address,
+                "body": body,
+                "init_code": init_code,
+                "init_data": init_data,
+            },
+        )
+
+    async def estimate_fee(
+        self,
+        address: str,
+        body: str,
+        init_code: Any = "",
+        init_data: Any = "",
+        ignore_chksig: bool = True,
+    ) -> dict:
         """
         Estimate fees required for query processing. body, init-code and init-data accepted in serialized format (b64-encoded).
         """
-        return await self.post("estimateFee", {"address": address, "body": body, "init_code": init_code, "init_data": init_data, "ignore_chksig": ignore_chksig})
+        return await self.post(
+            "estimateFee",
+            {
+                "address": address,
+                "body": body,
+                "init_code": init_code,
+                "init_data": init_data,
+                "ignore_chksig": ignore_chksig,
+            },
+        )
