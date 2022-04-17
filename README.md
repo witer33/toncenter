@@ -1,6 +1,12 @@
 # toncenter
 Toncenter API Python3 async wrap.
 
+# Installation
+
+```sh
+pip3 install toncenter
+```
+
 # Example
 
 ```python
