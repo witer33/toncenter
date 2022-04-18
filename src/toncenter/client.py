@@ -6,6 +6,9 @@ from typing import Optional, Union, List, Any
 import time
 
 
+STANDARD_SHARD = "-9223372036854775808"
+
+
 class GenericException(Exception):
     pass
 
@@ -74,7 +77,6 @@ class MessageData:
 @dataclass_json
 @dataclass
 class Message:
-    source: str
     destination: str
     value: Union[str, int]
     fwd_fee: str
@@ -83,6 +85,7 @@ class Message:
     body_hash: str
     msg_data: MessageData
     message: str
+    source: Optional[str] = None
 
 
 @dataclass_json
@@ -95,8 +98,8 @@ class Transaction:
     fee: str
     storage_fee: str
     other_fee: str
-    in_msg: Message
     out_msgs: List[Message]
+    in_msg: Optional[Message] = None
 
 
 @dataclass_json
@@ -421,6 +424,17 @@ class Client:
             args["root_hash"] = block_id.root_hash
         if block_id.file_hash:
             args["file_hash"] = block_id.file_hash
+        return BlockHeader.from_dict(await self.get("getBlockHeader", args))
+    
+    async def get_masterchain_block_header(self, seqno: int) -> BlockHeader:
+        """
+        Get metadata of a given seqno, in the master chain.
+        """
+        args = {
+            "workchain": -1,
+            "shard": STANDARD_SHARD,
+            "seqno": seqno,
+        }
         return BlockHeader.from_dict(await self.get("getBlockHeader", args))
 
     async def try_locate_transaction(

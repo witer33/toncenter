@@ -130,3 +130,6 @@ dmypy.json
 
 # configs
 main_api_token.txt
+test_api_token.txt
+test.db
+test.py
