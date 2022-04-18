@@ -45,6 +45,90 @@
                         <li>
                                 <a class="function" href="#TemporaryMap.start">start</a>
                         </li>
+                        <li>
+                                <a class="function" href="#TemporaryMap.stop">stop</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#TxStorage">TxStorage</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#TxStorage.get_txs">get_txs</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#TxStorage.add_tx">add_tx</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#TxStorage.get_last_seqno">get_last_seqno</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#TxStorage.set_last_seqno">set_last_seqno</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#SqliteStorage">SqliteStorage</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#SqliteStorage.__init__">SqliteStorage</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#SqliteStorage.start">start</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#SqliteStorage.stop">stop</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#SqliteStorage.add_tx">add_tx</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#SqliteStorage.get_txs">get_txs</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#SqliteStorage.cleanup">cleanup</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#SqliteStorage.start_cleanup">start_cleanup</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#SqliteStorage.set">set</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#SqliteStorage.get">get</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#SqliteStorage.set_last_seqno">set_last_seqno</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#SqliteStorage.get_last_seqno">get_last_seqno</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#BlockHandler">BlockHandler</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#BlockHandler.__init__">BlockHandler</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#BlockHandler.add_handler">add_handler</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#BlockHandler.call_handlers">call_handlers</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#BlockHandler.block_checker">block_checker</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#BlockHandler.start">start</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#BlockHandler.stop">stop</a>
+                        </li>
                 </ul>
 
             </li>
@@ -58,10 +142,13 @@
                                 <a class="function" href="#Ticker.start">start</a>
                         </li>
                         <li>
-                                <a class="function" href="#Ticker.checker">checker</a>
+                                <a class="function" href="#Ticker.stop">stop</a>
                         </li>
                         <li>
-                                <a class="function" href="#Ticker.add_tx">add_tx</a>
+                                <a class="function" href="#Ticker.block_receiver">block_receiver</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#Ticker.set_handler">set_handler</a>
                         </li>
                 </ul>
 
@@ -85,19 +172,27 @@
                 
                         <details>
             <summary>View Source</summary>
-            <div class="pdoc-code codehilite"><pre><span></span><span class="kn">from</span> <span class="nn">toncenter.client</span> <span class="kn">import</span> <span class="n">Client</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Coroutine</span><span class="p">,</span> <span class="n">Hashable</span><span class="p">,</span> <span class="n">Any</span>
+<span class="kn">from</span> <span class="nn">.client</span> <span class="kn">import</span> <span class="n">BlockID</span><span class="p">,</span> <span class="n">Client</span><span class="p">,</span> <span class="n">BlockHeader</span><span class="p">,</span> <span class="n">STANDARD_SHARD</span>
 <span class="kn">import</span> <span class="nn">asyncio</span>
 <span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">import</span> <span class="nn">aiosqlite</span>
+<span class="kn">import</span> <span class="nn">traceback</span>
 
 
 <span class="k">class</span> <span class="nc">TemporaryMap</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Map with expiration time.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_map</span> <span class="o">=</span> <span class="p">{}</span>
 
-    <span class="k">def</span> <span class="nf">set_item</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">expire_in</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">set_item</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">expire_in</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_map</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span> <span class="o">+</span> <span class="n">expire_in</span> <span class="k">if</span> <span class="n">expire_in</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_map</span><span class="p">:</span>
             <span class="n">value</span><span class="p">,</span> <span class="n">expire_in</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_map</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
             <span class="k">if</span> <span class="n">expire_in</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">expire_in</span> <span class="o">&lt;</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()):</span>
@@ -116,28 +211,215 @@
 
     <span class="k">async</span> <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delay</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">delay</span> <span class="o">=</span> <span class="n">delay</span>
-        <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cleaner</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cleaner_task</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cleaner</span><span class="p">())</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cleaner_task</span><span class="o">.</span><span class="n">cancel</span><span class="p">()</span>
 
+
+<span class="k">class</span> <span class="nc">TxStorage</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Storage for transactions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">get_txs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+        <span class="k">pass</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">add_tx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">amount</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">expire_in</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">pass</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">get_last_seqno</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">pass</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">set_last_seqno</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seqno</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">pass</span>
+
+
+<span class="k">class</span> <span class="nc">SqliteStorage</span><span class="p">(</span><span class="n">TxStorage</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">db_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;ton.db&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db_file</span> <span class="o">=</span> <span class="n">db_file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">started</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span> <span class="o">=</span> <span class="kc">None</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delay</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">60</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">started</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span> <span class="o">=</span> <span class="k">await</span> <span class="n">aiosqlite</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">db_file</span><span class="p">)</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            CREATE TABLE IF NOT EXISTS transactions (</span>
+<span class="s2">                address TEXT NOT NULL PRIMARY KEY,</span>
+<span class="s2">                amount INTEGER, </span>
+<span class="s2">                message TEXT, </span>
+<span class="s2">                expire_in INTEGER</span>
+<span class="s2">            )</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            CREATE INDEX IF NOT EXISTS expire_in_index ON transactions (expire_in)</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            CREATE TABLE IF NOT EXISTS storage (</span>
+<span class="s2">                key TEXT NOT NULL PRIMARY KEY,</span>
+<span class="s2">                value TEXT</span>
+<span class="s2">            )</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start_cleanup</span><span class="p">(</span><span class="n">delay</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">started</span> <span class="o">=</span> <span class="kc">True</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">async</span> <span class="k">def</span> <span class="fm">__aenter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;SqliteStorage&#39;</span><span class="p">:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="fm">__aexit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_val</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">add_tx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">amount</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">expire_in</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            INSERT INTO transactions (address, amount, message, expire_in)</span>
+<span class="s2">            VALUES (?, ?, ?, ?)</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">address</span><span class="p">,</span> <span class="n">amount</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">expire_in</span><span class="p">))</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">get_txs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT amount, message FROM transactions WHERE address = ?</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">address</span><span class="p">,))</span>
+        <span class="k">return</span> <span class="p">[(</span><span class="n">amount</span><span class="p">,</span> <span class="n">message</span><span class="p">)</span> <span class="k">for</span> <span class="n">amount</span><span class="p">,</span> <span class="n">message</span> <span class="ow">in</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()]</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            DELETE FROM transactions WHERE expire_in != -1 AND expire_in &lt; ?</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()),))</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">start_cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delay</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">delay</span><span class="p">)</span>
+            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">cleanup</span><span class="p">()</span>
+        
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            INSERT OR REPLACE INTO storage (key, value) VALUES (?, ?)</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">async</span> <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;SELECT value FROM storage WHERE key = ?&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">key</span><span class="p">,))</span> <span class="k">as</span> <span class="n">cursor</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">result</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+        
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">set_last_seqno</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seqno</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s2">&quot;last_seqno&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">seqno</span><span class="p">))</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">get_last_seqno</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="n">seqno</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;last_seqno&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">seqno</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">seqno</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">0</span>
+
+
+<span class="k">class</span> <span class="nc">BlockHandler</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calls any number of used defined handlers for each block.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">client</span><span class="p">:</span> <span class="n">Client</span><span class="p">,</span> <span class="n">last_seqno</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">delay</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">on_checked_seqno</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">handlers</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="n">BlockID</span><span class="p">],</span> <span class="n">Coroutine</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">client</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delay</span> <span class="o">=</span> <span class="n">delay</span>
+        <span class="k">if</span> <span class="n">last_seqno</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">last_checked_seqno</span> <span class="o">=</span> <span class="n">last_seqno</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">last_checked_seqno</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">on_checked_seqno</span> <span class="o">=</span> <span class="n">on_checked_seqno</span>
+    
+    <span class="k">def</span> <span class="nf">add_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handler</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">BlockID</span><span class="p">],</span> <span class="n">Coroutine</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">handlers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">handler</span><span class="p">)</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">call_handlers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_id</span><span class="p">:</span> <span class="n">BlockID</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">handler</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">handlers</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">await</span> <span class="n">handler</span><span class="p">(</span><span class="n">block_id</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error in handler: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">block_checker</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">delay</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">last_seqno</span> <span class="o">=</span> <span class="p">(</span><span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">get_masterchain_info</span><span class="p">())</span><span class="o">.</span><span class="n">last</span><span class="o">.</span><span class="n">seqno</span>
+                <span class="k">for</span> <span class="n">seqno</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">last_checked_seqno</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">last_seqno</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                    <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">call_handlers</span><span class="p">(</span><span class="n">BlockID</span><span class="p">(</span><span class="n">workchain</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">shard</span><span class="o">=</span><span class="n">STANDARD_SHARD</span><span class="p">,</span> <span class="n">seqno</span><span class="o">=</span><span class="n">seqno</span><span class="p">)))</span>
+                    <span class="n">shards</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">get_shards</span><span class="p">(</span><span class="n">seqno</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">block_id</span> <span class="ow">in</span> <span class="n">shards</span><span class="o">.</span><span class="n">shards</span><span class="p">:</span>
+                        <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">call_handlers</span><span class="p">(</span><span class="n">block_id</span><span class="p">))</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">last_checked_seqno</span> <span class="o">=</span> <span class="n">seqno</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">on_checked_seqno</span><span class="p">:</span>
+                        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">on_checked_seqno</span><span class="p">(</span><span class="n">seqno</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Caught an error while checking blocks&quot;</span><span class="p">)</span>
+                <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_checked_seqno</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">last_checked_seqno</span> <span class="o">=</span> <span class="p">(</span><span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">get_masterchain_info</span><span class="p">())</span><span class="o">.</span><span class="n">last</span><span class="o">.</span><span class="n">seqno</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">checker</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">block_checker</span><span class="p">())</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">checker</span><span class="o">.</span><span class="n">cancel</span><span class="p">()</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="fm">__aenter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;BlockHandler&#39;</span><span class="p">:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">async</span> <span class="k">def</span> <span class="fm">__aexit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_val</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
 
 <span class="k">class</span> <span class="nc">Ticker</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    WIP (not working)</span>
+<span class="sd">    WIP NOT WORKING.</span>
+
+<span class="sd">    Calls a user defined handler when a registered transaction is found.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">client</span><span class="p">:</span> <span class="n">Client</span><span class="p">,</span> <span class="n">delay</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">client</span><span class="p">:</span> <span class="n">Client</span><span class="p">,</span> <span class="n">storage</span><span class="p">:</span> <span class="n">TxStorage</span><span class="p">,</span> <span class="n">delay</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">block_handler</span> <span class="o">=</span> <span class="n">BlockHandler</span><span class="p">(</span><span class="n">client</span><span class="o">=</span><span class="n">client</span><span class="p">,</span> <span class="n">delay</span><span class="o">=</span><span class="n">delay</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">block_handler</span><span class="o">.</span><span class="n">add_handler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">block_receiver</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">storage</span> <span class="o">=</span> <span class="n">storage</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">client</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">delay</span> <span class="o">=</span> <span class="n">delay</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">waiting_txs</span> <span class="o">=</span> <span class="n">TemporaryMap</span><span class="p">()</span>
-
+        <span class="bp">self</span><span class="o">.</span><span class="n">handler</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">Coroutine</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    
     <span class="k">async</span> <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">waiting_txs</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">checker</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-            <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">delay</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">add_tx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">amount</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">uid</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">expire_in</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">waiting_txs</span><span class="o">.</span><span class="n">set_item</span><span class="p">(</span><span class="n">uid</span><span class="p">,</span> <span class="p">(</span><span class="n">address</span><span class="p">,</span> <span class="n">amount</span><span class="p">),</span> <span class="n">expire_in</span><span class="p">)</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_handler</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_handler</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="fm">__aenter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;Ticker&#39;</span><span class="p">:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="fm">__aexit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_val</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">block_receiver</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_id</span><span class="p">:</span> <span class="n">BlockID</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">txs</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">get_block_transactions</span><span class="p">(</span><span class="n">block_id</span><span class="p">)</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">set_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handler</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">Coroutine</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">handler</span> <span class="o">=</span> <span class="n">handler</span>
 </pre></div>
 
         </details>
@@ -155,13 +437,17 @@
             <details>
             <summary>View Source</summary>
             <div class="pdoc-code codehilite"><pre><span></span><span class="k">class</span> <span class="nc">TemporaryMap</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Map with expiration time.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_map</span> <span class="o">=</span> <span class="p">{}</span>
 
-    <span class="k">def</span> <span class="nf">set_item</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">expire_in</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">set_item</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">expire_in</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_map</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span> <span class="o">+</span> <span class="n">expire_in</span> <span class="k">if</span> <span class="n">expire_in</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_map</span><span class="p">:</span>
             <span class="n">value</span><span class="p">,</span> <span class="n">expire_in</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_map</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
             <span class="k">if</span> <span class="n">expire_in</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">expire_in</span> <span class="o">&lt;</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()):</span>
@@ -180,12 +466,17 @@
 
     <span class="k">async</span> <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delay</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">delay</span> <span class="o">=</span> <span class="n">delay</span>
-        <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cleaner</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cleaner_task</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cleaner</span><span class="p">())</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cleaner_task</span><span class="o">.</span><span class="n">cancel</span><span class="p">()</span>
 </pre></div>
 
         </details>
 
-    
+            <div class="docstring"><p>Map with expiration time.</p>
+</div>
+
 
                             <div id="TemporaryMap.__init__" class="classattr">
                                         <div class="attr function"><a class="headerlink" href="#TemporaryMap.__init__">#&nbsp;&nbsp</a>
@@ -210,12 +501,12 @@
 
         
             <span class="def">def</span>
-            <span class="name">set_item</span><span class="signature">(self, key: str, value: str, expire_in: int = -1) -&gt; None</span>:
+            <span class="name">set_item</span><span class="signature">(self, key: Hashable, value: Any, expire_in: int = -1) -&gt; None</span>:
     </div>
 
             <details>
             <summary>View Source</summary>
-            <div class="pdoc-code codehilite"><pre><span></span>    <span class="k">def</span> <span class="nf">set_item</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">expire_in</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+            <div class="pdoc-code codehilite"><pre><span></span>    <span class="k">def</span> <span class="nf">set_item</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">expire_in</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_map</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span> <span class="o">+</span> <span class="n">expire_in</span> <span class="k">if</span> <span class="n">expire_in</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
 </pre></div>
 
@@ -260,7 +551,751 @@
             <summary>View Source</summary>
             <div class="pdoc-code codehilite"><pre><span></span>    <span class="k">async</span> <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delay</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">delay</span> <span class="o">=</span> <span class="n">delay</span>
-        <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cleaner</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cleaner_task</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cleaner</span><span class="p">())</span>
+</pre></div>
+
+        </details>
+
+    
+
+                            </div>
+                            <div id="TemporaryMap.stop" class="classattr">
+                                        <div class="attr function"><a class="headerlink" href="#TemporaryMap.stop">#&nbsp;&nbsp</a>
+
+        
+            <span class="def">async def</span>
+            <span class="name">stop</span><span class="signature">(self) -&gt; None</span>:
+    </div>
+
+            <details>
+            <summary>View Source</summary>
+            <div class="pdoc-code codehilite"><pre><span></span>    <span class="k">async</span> <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cleaner_task</span><span class="o">.</span><span class="n">cancel</span><span class="p">()</span>
+</pre></div>
+
+        </details>
+
+    
+
+                            </div>
+                </section>
+                <section id="TxStorage">
+                                <div class="attr class">
+        <a class="headerlink" href="#TxStorage">#&nbsp;&nbsp</a>
+
+        
+        <span class="def">class</span>
+        <span class="name">TxStorage</span><wbr>(<span class="base">abc.ABC</span>):
+    </div>
+
+            <details>
+            <summary>View Source</summary>
+            <div class="pdoc-code codehilite"><pre><span></span><span class="k">class</span> <span class="nc">TxStorage</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Storage for transactions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">get_txs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+        <span class="k">pass</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">add_tx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">amount</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">expire_in</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">pass</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">get_last_seqno</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">pass</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">set_last_seqno</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seqno</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">pass</span>
+</pre></div>
+
+        </details>
+
+            <div class="docstring"><p>Storage for transactions.</p>
+</div>
+
+
+                            <div id="TxStorage.get_txs" class="classattr">
+                                        <div class="attr function"><a class="headerlink" href="#TxStorage.get_txs">#&nbsp;&nbsp</a>
+
+                <div class="decorator">@abstractmethod</div>
+
+            <span class="def">async def</span>
+            <span class="name">get_txs</span><span class="signature">(self, address: str) -&gt; List[Tuple[int, str]]</span>:
+    </div>
+
+            <details>
+            <summary>View Source</summary>
+            <div class="pdoc-code codehilite"><pre><span></span>    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">get_txs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+        <span class="k">pass</span>
+</pre></div>
+
+        </details>
+
+    
+
+                            </div>
+                            <div id="TxStorage.add_tx" class="classattr">
+                                        <div class="attr function"><a class="headerlink" href="#TxStorage.add_tx">#&nbsp;&nbsp</a>
+
+                <div class="decorator">@abstractmethod</div>
+
+            <span class="def">async def</span>
+            <span class="name">add_tx</span><span class="signature">(
+    self,
+    address: str,
+    amount: int,
+    message: Optional[str] = &#39;&#39;,
+    expire_in: Optional[int] = -1
+) -&gt; None</span>:
+    </div>
+
+            <details>
+            <summary>View Source</summary>
+            <div class="pdoc-code codehilite"><pre><span></span>    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">add_tx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">amount</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">expire_in</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">pass</span>
+</pre></div>
+
+        </details>
+
+    
+
+                            </div>
+                            <div id="TxStorage.get_last_seqno" class="classattr">
+                                        <div class="attr function"><a class="headerlink" href="#TxStorage.get_last_seqno">#&nbsp;&nbsp</a>
+
+                <div class="decorator">@abstractmethod</div>
+
+            <span class="def">async def</span>
+            <span class="name">get_last_seqno</span><span class="signature">(self) -&gt; int</span>:
+    </div>
+
+            <details>
+            <summary>View Source</summary>
+            <div class="pdoc-code codehilite"><pre><span></span>    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">get_last_seqno</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">pass</span>
+</pre></div>
+
+        </details>
+
+    
+
+                            </div>
+                            <div id="TxStorage.set_last_seqno" class="classattr">
+                                        <div class="attr function"><a class="headerlink" href="#TxStorage.set_last_seqno">#&nbsp;&nbsp</a>
+
+                <div class="decorator">@abstractmethod</div>
+
+            <span class="def">async def</span>
+            <span class="name">set_last_seqno</span><span class="signature">(self, seqno: int) -&gt; None</span>:
+    </div>
+
+            <details>
+            <summary>View Source</summary>
+            <div class="pdoc-code codehilite"><pre><span></span>    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">set_last_seqno</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seqno</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">pass</span>
+</pre></div>
+
+        </details>
+
+    
+
+                            </div>
+                </section>
+                <section id="SqliteStorage">
+                                <div class="attr class">
+        <a class="headerlink" href="#SqliteStorage">#&nbsp;&nbsp</a>
+
+        
+        <span class="def">class</span>
+        <span class="name">SqliteStorage</span><wbr>(<span class="base"><a href="#TxStorage">TxStorage</a></span>):
+    </div>
+
+            <details>
+            <summary>View Source</summary>
+            <div class="pdoc-code codehilite"><pre><span></span><span class="k">class</span> <span class="nc">SqliteStorage</span><span class="p">(</span><span class="n">TxStorage</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">db_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;ton.db&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db_file</span> <span class="o">=</span> <span class="n">db_file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">started</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span> <span class="o">=</span> <span class="kc">None</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delay</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">60</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">started</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span> <span class="o">=</span> <span class="k">await</span> <span class="n">aiosqlite</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">db_file</span><span class="p">)</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            CREATE TABLE IF NOT EXISTS transactions (</span>
+<span class="s2">                address TEXT NOT NULL PRIMARY KEY,</span>
+<span class="s2">                amount INTEGER, </span>
+<span class="s2">                message TEXT, </span>
+<span class="s2">                expire_in INTEGER</span>
+<span class="s2">            )</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            CREATE INDEX IF NOT EXISTS expire_in_index ON transactions (expire_in)</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            CREATE TABLE IF NOT EXISTS storage (</span>
+<span class="s2">                key TEXT NOT NULL PRIMARY KEY,</span>
+<span class="s2">                value TEXT</span>
+<span class="s2">            )</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start_cleanup</span><span class="p">(</span><span class="n">delay</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">started</span> <span class="o">=</span> <span class="kc">True</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">async</span> <span class="k">def</span> <span class="fm">__aenter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;SqliteStorage&#39;</span><span class="p">:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="fm">__aexit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_val</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">add_tx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">amount</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">expire_in</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            INSERT INTO transactions (address, amount, message, expire_in)</span>
+<span class="s2">            VALUES (?, ?, ?, ?)</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">address</span><span class="p">,</span> <span class="n">amount</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">expire_in</span><span class="p">))</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">get_txs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT amount, message FROM transactions WHERE address = ?</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">address</span><span class="p">,))</span>
+        <span class="k">return</span> <span class="p">[(</span><span class="n">amount</span><span class="p">,</span> <span class="n">message</span><span class="p">)</span> <span class="k">for</span> <span class="n">amount</span><span class="p">,</span> <span class="n">message</span> <span class="ow">in</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()]</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            DELETE FROM transactions WHERE expire_in != -1 AND expire_in &lt; ?</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()),))</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">start_cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delay</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">delay</span><span class="p">)</span>
+            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">cleanup</span><span class="p">()</span>
+        
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            INSERT OR REPLACE INTO storage (key, value) VALUES (?, ?)</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">async</span> <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;SELECT value FROM storage WHERE key = ?&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">key</span><span class="p">,))</span> <span class="k">as</span> <span class="n">cursor</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">result</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+        
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">set_last_seqno</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seqno</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s2">&quot;last_seqno&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">seqno</span><span class="p">))</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">get_last_seqno</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="n">seqno</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;last_seqno&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">seqno</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">seqno</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">0</span>
+</pre></div>
+
+        </details>
+
+            <div class="docstring"><p>Storage for transactions.</p>
+</div>
+
+
+                            <div id="SqliteStorage.__init__" class="classattr">
+                                        <div class="attr function"><a class="headerlink" href="#SqliteStorage.__init__">#&nbsp;&nbsp</a>
+
+        
+            <span class="name">SqliteStorage</span><span class="signature">(db_file: str = &#39;ton.db&#39;)</span>
+    </div>
+
+            <details>
+            <summary>View Source</summary>
+            <div class="pdoc-code codehilite"><pre><span></span>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">db_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;ton.db&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db_file</span> <span class="o">=</span> <span class="n">db_file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">started</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span> <span class="o">=</span> <span class="kc">None</span>
+</pre></div>
+
+        </details>
+
+    
+
+                            </div>
+                            <div id="SqliteStorage.start" class="classattr">
+                                        <div class="attr function"><a class="headerlink" href="#SqliteStorage.start">#&nbsp;&nbsp</a>
+
+        
+            <span class="def">async def</span>
+            <span class="name">start</span><span class="signature">(self, delay: int = 60) -&gt; None</span>:
+    </div>
+
+            <details>
+            <summary>View Source</summary>
+            <div class="pdoc-code codehilite"><pre><span></span>    <span class="k">async</span> <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delay</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">60</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">started</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span> <span class="o">=</span> <span class="k">await</span> <span class="n">aiosqlite</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">db_file</span><span class="p">)</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            CREATE TABLE IF NOT EXISTS transactions (</span>
+<span class="s2">                address TEXT NOT NULL PRIMARY KEY,</span>
+<span class="s2">                amount INTEGER, </span>
+<span class="s2">                message TEXT, </span>
+<span class="s2">                expire_in INTEGER</span>
+<span class="s2">            )</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            CREATE INDEX IF NOT EXISTS expire_in_index ON transactions (expire_in)</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            CREATE TABLE IF NOT EXISTS storage (</span>
+<span class="s2">                key TEXT NOT NULL PRIMARY KEY,</span>
+<span class="s2">                value TEXT</span>
+<span class="s2">            )</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start_cleanup</span><span class="p">(</span><span class="n">delay</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">started</span> <span class="o">=</span> <span class="kc">True</span>
+</pre></div>
+
+        </details>
+
+    
+
+                            </div>
+                            <div id="SqliteStorage.stop" class="classattr">
+                                        <div class="attr function"><a class="headerlink" href="#SqliteStorage.stop">#&nbsp;&nbsp</a>
+
+        
+            <span class="def">async def</span>
+            <span class="name">stop</span><span class="signature">(self) -&gt; None</span>:
+    </div>
+
+            <details>
+            <summary>View Source</summary>
+            <div class="pdoc-code codehilite"><pre><span></span>    <span class="k">async</span> <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+
+        </details>
+
+    
+
+                            </div>
+                            <div id="SqliteStorage.add_tx" class="classattr">
+                                        <div class="attr function"><a class="headerlink" href="#SqliteStorage.add_tx">#&nbsp;&nbsp</a>
+
+        
+            <span class="def">async def</span>
+            <span class="name">add_tx</span><span class="signature">(
+    self,
+    address: str,
+    amount: int,
+    message: Optional[str] = &#39;&#39;,
+    expire_in: Optional[int] = -1
+) -&gt; None</span>:
+    </div>
+
+            <details>
+            <summary>View Source</summary>
+            <div class="pdoc-code codehilite"><pre><span></span>    <span class="k">async</span> <span class="k">def</span> <span class="nf">add_tx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">amount</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">expire_in</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            INSERT INTO transactions (address, amount, message, expire_in)</span>
+<span class="s2">            VALUES (?, ?, ?, ?)</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">address</span><span class="p">,</span> <span class="n">amount</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">expire_in</span><span class="p">))</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+</pre></div>
+
+        </details>
+
+    
+
+                            </div>
+                            <div id="SqliteStorage.get_txs" class="classattr">
+                                        <div class="attr function"><a class="headerlink" href="#SqliteStorage.get_txs">#&nbsp;&nbsp</a>
+
+        
+            <span class="def">async def</span>
+            <span class="name">get_txs</span><span class="signature">(self, address: str) -&gt; List[Tuple[int, str]]</span>:
+    </div>
+
+            <details>
+            <summary>View Source</summary>
+            <div class="pdoc-code codehilite"><pre><span></span>    <span class="k">async</span> <span class="k">def</span> <span class="nf">get_txs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT amount, message FROM transactions WHERE address = ?</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">address</span><span class="p">,))</span>
+        <span class="k">return</span> <span class="p">[(</span><span class="n">amount</span><span class="p">,</span> <span class="n">message</span><span class="p">)</span> <span class="k">for</span> <span class="n">amount</span><span class="p">,</span> <span class="n">message</span> <span class="ow">in</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()]</span>
+</pre></div>
+
+        </details>
+
+    
+
+                            </div>
+                            <div id="SqliteStorage.cleanup" class="classattr">
+                                        <div class="attr function"><a class="headerlink" href="#SqliteStorage.cleanup">#&nbsp;&nbsp</a>
+
+        
+            <span class="def">async def</span>
+            <span class="name">cleanup</span><span class="signature">(self) -&gt; None</span>:
+    </div>
+
+            <details>
+            <summary>View Source</summary>
+            <div class="pdoc-code codehilite"><pre><span></span>    <span class="k">async</span> <span class="k">def</span> <span class="nf">cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            DELETE FROM transactions WHERE expire_in != -1 AND expire_in &lt; ?</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()),))</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+</pre></div>
+
+        </details>
+
+    
+
+                            </div>
+                            <div id="SqliteStorage.start_cleanup" class="classattr">
+                                        <div class="attr function"><a class="headerlink" href="#SqliteStorage.start_cleanup">#&nbsp;&nbsp</a>
+
+        
+            <span class="def">async def</span>
+            <span class="name">start_cleanup</span><span class="signature">(self, delay: int) -&gt; None</span>:
+    </div>
+
+            <details>
+            <summary>View Source</summary>
+            <div class="pdoc-code codehilite"><pre><span></span>    <span class="k">async</span> <span class="k">def</span> <span class="nf">start_cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delay</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">delay</span><span class="p">)</span>
+            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">cleanup</span><span class="p">()</span>
+</pre></div>
+
+        </details>
+
+    
+
+                            </div>
+                            <div id="SqliteStorage.set" class="classattr">
+                                        <div class="attr function"><a class="headerlink" href="#SqliteStorage.set">#&nbsp;&nbsp</a>
+
+        
+            <span class="def">async def</span>
+            <span class="name">set</span><span class="signature">(self, key: str, value: str) -&gt; None</span>:
+    </div>
+
+            <details>
+            <summary>View Source</summary>
+            <div class="pdoc-code codehilite"><pre><span></span>    <span class="k">async</span> <span class="k">def</span> <span class="nf">set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            INSERT OR REPLACE INTO storage (key, value) VALUES (?, ?)</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+</pre></div>
+
+        </details>
+
+    
+
+                            </div>
+                            <div id="SqliteStorage.get" class="classattr">
+                                        <div class="attr function"><a class="headerlink" href="#SqliteStorage.get">#&nbsp;&nbsp</a>
+
+        
+            <span class="def">async def</span>
+            <span class="name">get</span><span class="signature">(self, key: str) -&gt; str</span>:
+    </div>
+
+            <details>
+            <summary>View Source</summary>
+            <div class="pdoc-code codehilite"><pre><span></span>    <span class="k">async</span> <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">async</span> <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;SELECT value FROM storage WHERE key = ?&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">key</span><span class="p">,))</span> <span class="k">as</span> <span class="n">cursor</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">result</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+</pre></div>
+
+        </details>
+
+    
+
+                            </div>
+                            <div id="SqliteStorage.set_last_seqno" class="classattr">
+                                        <div class="attr function"><a class="headerlink" href="#SqliteStorage.set_last_seqno">#&nbsp;&nbsp</a>
+
+        
+            <span class="def">async def</span>
+            <span class="name">set_last_seqno</span><span class="signature">(self, seqno: int) -&gt; None</span>:
+    </div>
+
+            <details>
+            <summary>View Source</summary>
+            <div class="pdoc-code codehilite"><pre><span></span>    <span class="k">async</span> <span class="k">def</span> <span class="nf">set_last_seqno</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seqno</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s2">&quot;last_seqno&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">seqno</span><span class="p">))</span>
+</pre></div>
+
+        </details>
+
+    
+
+                            </div>
+                            <div id="SqliteStorage.get_last_seqno" class="classattr">
+                                        <div class="attr function"><a class="headerlink" href="#SqliteStorage.get_last_seqno">#&nbsp;&nbsp</a>
+
+        
+            <span class="def">async def</span>
+            <span class="name">get_last_seqno</span><span class="signature">(self) -&gt; int</span>:
+    </div>
+
+            <details>
+            <summary>View Source</summary>
+            <div class="pdoc-code codehilite"><pre><span></span>    <span class="k">async</span> <span class="k">def</span> <span class="nf">get_last_seqno</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="n">seqno</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;last_seqno&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">seqno</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">seqno</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">0</span>
+</pre></div>
+
+        </details>
+
+    
+
+                            </div>
+                </section>
+                <section id="BlockHandler">
+                                <div class="attr class">
+        <a class="headerlink" href="#BlockHandler">#&nbsp;&nbsp</a>
+
+        
+        <span class="def">class</span>
+        <span class="name">BlockHandler</span>:
+    </div>
+
+            <details>
+            <summary>View Source</summary>
+            <div class="pdoc-code codehilite"><pre><span></span><span class="k">class</span> <span class="nc">BlockHandler</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calls any number of used defined handlers for each block.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">client</span><span class="p">:</span> <span class="n">Client</span><span class="p">,</span> <span class="n">last_seqno</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">delay</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">on_checked_seqno</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">handlers</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="n">BlockID</span><span class="p">],</span> <span class="n">Coroutine</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">client</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delay</span> <span class="o">=</span> <span class="n">delay</span>
+        <span class="k">if</span> <span class="n">last_seqno</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">last_checked_seqno</span> <span class="o">=</span> <span class="n">last_seqno</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">last_checked_seqno</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">on_checked_seqno</span> <span class="o">=</span> <span class="n">on_checked_seqno</span>
+    
+    <span class="k">def</span> <span class="nf">add_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handler</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">BlockID</span><span class="p">],</span> <span class="n">Coroutine</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">handlers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">handler</span><span class="p">)</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">call_handlers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_id</span><span class="p">:</span> <span class="n">BlockID</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">handler</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">handlers</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">await</span> <span class="n">handler</span><span class="p">(</span><span class="n">block_id</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error in handler: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">block_checker</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">delay</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">last_seqno</span> <span class="o">=</span> <span class="p">(</span><span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">get_masterchain_info</span><span class="p">())</span><span class="o">.</span><span class="n">last</span><span class="o">.</span><span class="n">seqno</span>
+                <span class="k">for</span> <span class="n">seqno</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">last_checked_seqno</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">last_seqno</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                    <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">call_handlers</span><span class="p">(</span><span class="n">BlockID</span><span class="p">(</span><span class="n">workchain</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">shard</span><span class="o">=</span><span class="n">STANDARD_SHARD</span><span class="p">,</span> <span class="n">seqno</span><span class="o">=</span><span class="n">seqno</span><span class="p">)))</span>
+                    <span class="n">shards</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">get_shards</span><span class="p">(</span><span class="n">seqno</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">block_id</span> <span class="ow">in</span> <span class="n">shards</span><span class="o">.</span><span class="n">shards</span><span class="p">:</span>
+                        <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">call_handlers</span><span class="p">(</span><span class="n">block_id</span><span class="p">))</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">last_checked_seqno</span> <span class="o">=</span> <span class="n">seqno</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">on_checked_seqno</span><span class="p">:</span>
+                        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">on_checked_seqno</span><span class="p">(</span><span class="n">seqno</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Caught an error while checking blocks&quot;</span><span class="p">)</span>
+                <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_checked_seqno</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">last_checked_seqno</span> <span class="o">=</span> <span class="p">(</span><span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">get_masterchain_info</span><span class="p">())</span><span class="o">.</span><span class="n">last</span><span class="o">.</span><span class="n">seqno</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">checker</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">block_checker</span><span class="p">())</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">checker</span><span class="o">.</span><span class="n">cancel</span><span class="p">()</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="fm">__aenter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;BlockHandler&#39;</span><span class="p">:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">async</span> <span class="k">def</span> <span class="fm">__aexit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_val</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+</pre></div>
+
+        </details>
+
+            <div class="docstring"><p>Calls any number of used defined handlers for each block.</p>
+</div>
+
+
+                            <div id="BlockHandler.__init__" class="classattr">
+                                        <div class="attr function"><a class="headerlink" href="#BlockHandler.__init__">#&nbsp;&nbsp</a>
+
+        
+            <span class="name">BlockHandler</span><span class="signature">(
+    client: <a href="client.html#Client">toncenter.client.Client</a>,
+    last_seqno: int = -1,
+    delay: float = 1,
+    on_checked_seqno: Callable = None
+)</span>
+    </div>
+
+            <details>
+            <summary>View Source</summary>
+            <div class="pdoc-code codehilite"><pre><span></span>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">client</span><span class="p">:</span> <span class="n">Client</span><span class="p">,</span> <span class="n">last_seqno</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">delay</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">on_checked_seqno</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">handlers</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="n">BlockID</span><span class="p">],</span> <span class="n">Coroutine</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">client</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delay</span> <span class="o">=</span> <span class="n">delay</span>
+        <span class="k">if</span> <span class="n">last_seqno</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">last_checked_seqno</span> <span class="o">=</span> <span class="n">last_seqno</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">last_checked_seqno</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">on_checked_seqno</span> <span class="o">=</span> <span class="n">on_checked_seqno</span>
+</pre></div>
+
+        </details>
+
+    
+
+                            </div>
+                            <div id="BlockHandler.add_handler" class="classattr">
+                                        <div class="attr function"><a class="headerlink" href="#BlockHandler.add_handler">#&nbsp;&nbsp</a>
+
+        
+            <span class="def">def</span>
+            <span class="name">add_handler</span><span class="signature">(
+    self,
+    handler: Callable[[<a href="client.html#BlockID">toncenter.client.BlockID</a>], Coroutine]
+) -&gt; None</span>:
+    </div>
+
+            <details>
+            <summary>View Source</summary>
+            <div class="pdoc-code codehilite"><pre><span></span>    <span class="k">def</span> <span class="nf">add_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handler</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">BlockID</span><span class="p">],</span> <span class="n">Coroutine</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">handlers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">handler</span><span class="p">)</span>
+</pre></div>
+
+        </details>
+
+    
+
+                            </div>
+                            <div id="BlockHandler.call_handlers" class="classattr">
+                                        <div class="attr function"><a class="headerlink" href="#BlockHandler.call_handlers">#&nbsp;&nbsp</a>
+
+        
+            <span class="def">async def</span>
+            <span class="name">call_handlers</span><span class="signature">(self, block_id: <a href="client.html#BlockID">toncenter.client.BlockID</a>) -&gt; None</span>:
+    </div>
+
+            <details>
+            <summary>View Source</summary>
+            <div class="pdoc-code codehilite"><pre><span></span>    <span class="k">async</span> <span class="k">def</span> <span class="nf">call_handlers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_id</span><span class="p">:</span> <span class="n">BlockID</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">handler</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">handlers</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">await</span> <span class="n">handler</span><span class="p">(</span><span class="n">block_id</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error in handler: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+</pre></div>
+
+        </details>
+
+    
+
+                            </div>
+                            <div id="BlockHandler.block_checker" class="classattr">
+                                        <div class="attr function"><a class="headerlink" href="#BlockHandler.block_checker">#&nbsp;&nbsp</a>
+
+        
+            <span class="def">async def</span>
+            <span class="name">block_checker</span><span class="signature">(self) -&gt; None</span>:
+    </div>
+
+            <details>
+            <summary>View Source</summary>
+            <div class="pdoc-code codehilite"><pre><span></span>    <span class="k">async</span> <span class="k">def</span> <span class="nf">block_checker</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">delay</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">last_seqno</span> <span class="o">=</span> <span class="p">(</span><span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">get_masterchain_info</span><span class="p">())</span><span class="o">.</span><span class="n">last</span><span class="o">.</span><span class="n">seqno</span>
+                <span class="k">for</span> <span class="n">seqno</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">last_checked_seqno</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">last_seqno</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                    <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">call_handlers</span><span class="p">(</span><span class="n">BlockID</span><span class="p">(</span><span class="n">workchain</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">shard</span><span class="o">=</span><span class="n">STANDARD_SHARD</span><span class="p">,</span> <span class="n">seqno</span><span class="o">=</span><span class="n">seqno</span><span class="p">)))</span>
+                    <span class="n">shards</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">get_shards</span><span class="p">(</span><span class="n">seqno</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">block_id</span> <span class="ow">in</span> <span class="n">shards</span><span class="o">.</span><span class="n">shards</span><span class="p">:</span>
+                        <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">call_handlers</span><span class="p">(</span><span class="n">block_id</span><span class="p">))</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">last_checked_seqno</span> <span class="o">=</span> <span class="n">seqno</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">on_checked_seqno</span><span class="p">:</span>
+                        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">on_checked_seqno</span><span class="p">(</span><span class="n">seqno</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Caught an error while checking blocks&quot;</span><span class="p">)</span>
+                <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+</pre></div>
+
+        </details>
+
+    
+
+                            </div>
+                            <div id="BlockHandler.start" class="classattr">
+                                        <div class="attr function"><a class="headerlink" href="#BlockHandler.start">#&nbsp;&nbsp</a>
+
+        
+            <span class="def">async def</span>
+            <span class="name">start</span><span class="signature">(self) -&gt; None</span>:
+    </div>
+
+            <details>
+            <summary>View Source</summary>
+            <div class="pdoc-code codehilite"><pre><span></span>    <span class="k">async</span> <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_checked_seqno</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">last_checked_seqno</span> <span class="o">=</span> <span class="p">(</span><span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">get_masterchain_info</span><span class="p">())</span><span class="o">.</span><span class="n">last</span><span class="o">.</span><span class="n">seqno</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">checker</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">block_checker</span><span class="p">())</span>
+</pre></div>
+
+        </details>
+
+    
+
+                            </div>
+                            <div id="BlockHandler.stop" class="classattr">
+                                        <div class="attr function"><a class="headerlink" href="#BlockHandler.stop">#&nbsp;&nbsp</a>
+
+        
+            <span class="def">async def</span>
+            <span class="name">stop</span><span class="signature">(self) -&gt; None</span>:
+    </div>
+
+            <details>
+            <summary>View Source</summary>
+            <div class="pdoc-code codehilite"><pre><span></span>    <span class="k">async</span> <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">checker</span><span class="o">.</span><span class="n">cancel</span><span class="p">()</span>
 </pre></div>
 
         </details>
@@ -282,28 +1317,44 @@
             <summary>View Source</summary>
             <div class="pdoc-code codehilite"><pre><span></span><span class="k">class</span> <span class="nc">Ticker</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    WIP (not working)</span>
+<span class="sd">    WIP NOT WORKING.</span>
+
+<span class="sd">    Calls a user defined handler when a registered transaction is found.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">client</span><span class="p">:</span> <span class="n">Client</span><span class="p">,</span> <span class="n">delay</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">client</span><span class="p">:</span> <span class="n">Client</span><span class="p">,</span> <span class="n">storage</span><span class="p">:</span> <span class="n">TxStorage</span><span class="p">,</span> <span class="n">delay</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">block_handler</span> <span class="o">=</span> <span class="n">BlockHandler</span><span class="p">(</span><span class="n">client</span><span class="o">=</span><span class="n">client</span><span class="p">,</span> <span class="n">delay</span><span class="o">=</span><span class="n">delay</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">block_handler</span><span class="o">.</span><span class="n">add_handler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">block_receiver</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">storage</span> <span class="o">=</span> <span class="n">storage</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">client</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">delay</span> <span class="o">=</span> <span class="n">delay</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">waiting_txs</span> <span class="o">=</span> <span class="n">TemporaryMap</span><span class="p">()</span>
-
+        <span class="bp">self</span><span class="o">.</span><span class="n">handler</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">Coroutine</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    
     <span class="k">async</span> <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">waiting_txs</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">checker</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-            <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">delay</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">add_tx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">amount</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">uid</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">expire_in</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">waiting_txs</span><span class="o">.</span><span class="n">set_item</span><span class="p">(</span><span class="n">uid</span><span class="p">,</span> <span class="p">(</span><span class="n">address</span><span class="p">,</span> <span class="n">amount</span><span class="p">),</span> <span class="n">expire_in</span><span class="p">)</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_handler</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_handler</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="fm">__aenter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;Ticker&#39;</span><span class="p">:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="fm">__aexit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_val</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">block_receiver</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_id</span><span class="p">:</span> <span class="n">BlockID</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">txs</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">get_block_transactions</span><span class="p">(</span><span class="n">block_id</span><span class="p">)</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">set_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handler</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">Coroutine</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">handler</span> <span class="o">=</span> <span class="n">handler</span>
 </pre></div>
 
         </details>
 
-            <div class="docstring"><p>WIP (not working)</p>
+            <div class="docstring"><p>WIP NOT WORKING.</p>
+
+<p>Calls a user defined handler when a registered transaction is found.</p>
 </div>
 
 
@@ -311,15 +1362,21 @@
                                         <div class="attr function"><a class="headerlink" href="#Ticker.__init__">#&nbsp;&nbsp</a>
 
         
-            <span class="name">Ticker</span><span class="signature">(client: <a href="client.html#Client">toncenter.client.Client</a>, delay: float = 0.1)</span>
+            <span class="name">Ticker</span><span class="signature">(
+    client: <a href="client.html#Client">toncenter.client.Client</a>,
+    storage: <a href="#TxStorage">toncenter.ticker.TxStorage</a>,
+    delay: float = 1
+)</span>
     </div>
 
             <details>
             <summary>View Source</summary>
-            <div class="pdoc-code codehilite"><pre><span></span>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">client</span><span class="p">:</span> <span class="n">Client</span><span class="p">,</span> <span class="n">delay</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+            <div class="pdoc-code codehilite"><pre><span></span>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">client</span><span class="p">:</span> <span class="n">Client</span><span class="p">,</span> <span class="n">storage</span><span class="p">:</span> <span class="n">TxStorage</span><span class="p">,</span> <span class="n">delay</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">block_handler</span> <span class="o">=</span> <span class="n">BlockHandler</span><span class="p">(</span><span class="n">client</span><span class="o">=</span><span class="n">client</span><span class="p">,</span> <span class="n">delay</span><span class="o">=</span><span class="n">delay</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">block_handler</span><span class="o">.</span><span class="n">add_handler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">block_receiver</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">storage</span> <span class="o">=</span> <span class="n">storage</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">client</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">delay</span> <span class="o">=</span> <span class="n">delay</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">waiting_txs</span> <span class="o">=</span> <span class="n">TemporaryMap</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">handler</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">Coroutine</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 </pre></div>
 
         </details>
@@ -338,7 +1395,8 @@
             <details>
             <summary>View Source</summary>
             <div class="pdoc-code codehilite"><pre><span></span>    <span class="k">async</span> <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">waiting_txs</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_handler</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
 </pre></div>
 
         </details>
@@ -346,19 +1404,18 @@
     
 
                             </div>
-                            <div id="Ticker.checker" class="classattr">
-                                        <div class="attr function"><a class="headerlink" href="#Ticker.checker">#&nbsp;&nbsp</a>
+                            <div id="Ticker.stop" class="classattr">
+                                        <div class="attr function"><a class="headerlink" href="#Ticker.stop">#&nbsp;&nbsp</a>
 
         
             <span class="def">async def</span>
-            <span class="name">checker</span><span class="signature">(self) -&gt; None</span>:
+            <span class="name">stop</span><span class="signature">(self) -&gt; None</span>:
     </div>
 
             <details>
             <summary>View Source</summary>
-            <div class="pdoc-code codehilite"><pre><span></span>    <span class="k">async</span> <span class="k">def</span> <span class="nf">checker</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-            <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">delay</span><span class="p">)</span>
+            <div class="pdoc-code codehilite"><pre><span></span>    <span class="k">async</span> <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_handler</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
 </pre></div>
 
         </details>
@@ -366,24 +1423,37 @@
     
 
                             </div>
-                            <div id="Ticker.add_tx" class="classattr">
-                                        <div class="attr function"><a class="headerlink" href="#Ticker.add_tx">#&nbsp;&nbsp</a>
+                            <div id="Ticker.block_receiver" class="classattr">
+                                        <div class="attr function"><a class="headerlink" href="#Ticker.block_receiver">#&nbsp;&nbsp</a>
 
         
-            <span class="def">def</span>
-            <span class="name">add_tx</span><span class="signature">(
-    self,
-    address: str,
-    amount: int,
-    uid: str,
-    expire_in: int = 300
-) -&gt; None</span>:
+            <span class="def">async def</span>
+            <span class="name">block_receiver</span><span class="signature">(self, block_id: <a href="client.html#BlockID">toncenter.client.BlockID</a>) -&gt; None</span>:
     </div>
 
             <details>
             <summary>View Source</summary>
-            <div class="pdoc-code codehilite"><pre><span></span>    <span class="k">def</span> <span class="nf">add_tx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">amount</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">uid</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">expire_in</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">waiting_txs</span><span class="o">.</span><span class="n">set_item</span><span class="p">(</span><span class="n">uid</span><span class="p">,</span> <span class="p">(</span><span class="n">address</span><span class="p">,</span> <span class="n">amount</span><span class="p">),</span> <span class="n">expire_in</span><span class="p">)</span>
+            <div class="pdoc-code codehilite"><pre><span></span>    <span class="k">async</span> <span class="k">def</span> <span class="nf">block_receiver</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_id</span><span class="p">:</span> <span class="n">BlockID</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">txs</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">get_block_transactions</span><span class="p">(</span><span class="n">block_id</span><span class="p">)</span>
+</pre></div>
+
+        </details>
+
+    
+
+                            </div>
+                            <div id="Ticker.set_handler" class="classattr">
+                                        <div class="attr function"><a class="headerlink" href="#Ticker.set_handler">#&nbsp;&nbsp</a>
+
+        
+            <span class="def">async def</span>
+            <span class="name">set_handler</span><span class="signature">(self, handler: Callable[[str, int, str], Coroutine]) -&gt; None</span>:
+    </div>
+
+            <details>
+            <summary>View Source</summary>
+            <div class="pdoc-code codehilite"><pre><span></span>    <span class="k">async</span> <span class="k">def</span> <span class="nf">set_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handler</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">Coroutine</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">handler</span> <span class="o">=</span> <span class="n">handler</span>
 </pre></div>
 
         </details>

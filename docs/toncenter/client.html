@@ -217,6 +217,9 @@
                                 <a class="function" href="#Message.__init__">Message</a>
                         </li>
                         <li>
+                                <a class="variable" href="#Message.source">source</a>
+                        </li>
+                        <li>
                                 <a class="function" href="#Message.to_json">to_json</a>
                         </li>
                         <li>
@@ -239,6 +242,9 @@
                             <ul class="memberlist">
                         <li>
                                 <a class="function" href="#Transaction.__init__">Transaction</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#Transaction.in_msg">in_msg</a>
                         </li>
                         <li>
                                 <a class="function" href="#Transaction.to_json">to_json</a>
@@ -520,6 +526,9 @@
                                 <a class="function" href="#Client.get_block_header">get_block_header</a>
                         </li>
                         <li>
+                                <a class="function" href="#Client.get_masterchain_block_header">get_masterchain_block_header</a>
+                        </li>
+                        <li>
                                 <a class="function" href="#Client.try_locate_transaction">try_locate_transaction</a>
                         </li>
                         <li>
@@ -565,6 +574,9 @@
 <span class="kn">from</span> <span class="nn">dataclasses_json</span> <span class="kn">import</span> <span class="n">dataclass_json</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Any</span>
 <span class="kn">import</span> <span class="nn">time</span>
+
+
+<span class="n">STANDARD_SHARD</span> <span class="o">=</span> <span class="s2">&quot;-9223372036854775808&quot;</span>
 
 
 <span class="k">class</span> <span class="nc">GenericException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
@@ -635,7 +647,6 @@
 <span class="nd">@dataclass_json</span>
 <span class="nd">@dataclass</span>
 <span class="k">class</span> <span class="nc">Message</span><span class="p">:</span>
-    <span class="n">source</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">destination</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span>
     <span class="n">fwd_fee</span><span class="p">:</span> <span class="nb">str</span>
@@ -644,6 +655,7 @@
     <span class="n">body_hash</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">msg_data</span><span class="p">:</span> <span class="n">MessageData</span>
     <span class="n">message</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">source</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
 
 <span class="nd">@dataclass_json</span>
@@ -656,8 +668,8 @@
     <span class="n">fee</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">storage_fee</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">other_fee</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">in_msg</span><span class="p">:</span> <span class="n">Message</span>
     <span class="n">out_msgs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">]</span>
+    <span class="n">in_msg</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Message</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
 
 <span class="nd">@dataclass_json</span>
@@ -982,6 +994,17 @@
             <span class="n">args</span><span class="p">[</span><span class="s2">&quot;root_hash&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">block_id</span><span class="o">.</span><span class="n">root_hash</span>
         <span class="k">if</span> <span class="n">block_id</span><span class="o">.</span><span class="n">file_hash</span><span class="p">:</span>
             <span class="n">args</span><span class="p">[</span><span class="s2">&quot;file_hash&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">block_id</span><span class="o">.</span><span class="n">file_hash</span>
+        <span class="k">return</span> <span class="n">BlockHeader</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;getBlockHeader&quot;</span><span class="p">,</span> <span class="n">args</span><span class="p">))</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">get_masterchain_block_header</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seqno</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BlockHeader</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get metadata of a given seqno, in the master chain.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;workchain&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+            <span class="s2">&quot;shard&quot;</span><span class="p">:</span> <span class="n">STANDARD_SHARD</span><span class="p">,</span>
+            <span class="s2">&quot;seqno&quot;</span><span class="p">:</span> <span class="n">seqno</span><span class="p">,</span>
+        <span class="p">}</span>
         <span class="k">return</span> <span class="n">BlockHeader</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;getBlockHeader&quot;</span><span class="p">,</span> <span class="n">args</span><span class="p">))</span>
 
     <span class="k">async</span> <span class="k">def</span> <span class="nf">try_locate_transaction</span><span class="p">(</span>
@@ -2729,7 +2752,6 @@
             <div class="pdoc-code codehilite"><pre><span></span><span class="nd">@dataclass_json</span>
 <span class="nd">@dataclass</span>
 <span class="k">class</span> <span class="nc">Message</span><span class="p">:</span>
-    <span class="n">source</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">destination</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span>
     <span class="n">fwd_fee</span><span class="p">:</span> <span class="nb">str</span>
@@ -2738,11 +2760,12 @@
     <span class="n">body_hash</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">msg_data</span><span class="p">:</span> <span class="n">MessageData</span>
     <span class="n">message</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">source</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 </pre></div>
 
         </details>
 
-            <div class="docstring"><p>Message(source: str, destination: str, value: Union[str, int], fwd_fee: str, ihr_fee: str, created_lt: Union[int, str], body_hash: str, msg_data: <a href="#MessageData">toncenter.client.MessageData</a>, message: str)</p>
+            <div class="docstring"><p>Message(destination: str, value: Union[str, int], fwd_fee: str, ihr_fee: str, created_lt: Union[int, str], body_hash: str, msg_data: <a href="#MessageData">toncenter.client.MessageData</a>, message: str, source: Optional[str] = None)</p>
 </div>
 
 
@@ -2751,7 +2774,6 @@
 
         
             <span class="name">Message</span><span class="signature">(
-    source: str,
     destination: str,
     value: Union[str, int],
     fwd_fee: str,
@@ -2759,8 +2781,19 @@
     created_lt: Union[int, str],
     body_hash: str,
     msg_data: <a href="#MessageData">toncenter.client.MessageData</a>,
-    message: str
+    message: str,
+    source: Optional[str] = None
 )</span>
+    </div>
+
+    
+    
+
+                            </div>
+                            <div id="Message.source" class="classattr">
+                                            <div class="attr variable"><a class="headerlink" href="#Message.source">#&nbsp;&nbsp</a>
+
+        <span class="name">source</span><span class="annotation">: Optional[str]</span><span class="default_value"> = None</span>
     </div>
 
     
@@ -2993,13 +3026,13 @@
     <span class="n">fee</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">storage_fee</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">other_fee</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">in_msg</span><span class="p">:</span> <span class="n">Message</span>
     <span class="n">out_msgs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">]</span>
+    <span class="n">in_msg</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Message</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 </pre></div>
 
         </details>
 
-            <div class="docstring"><p>Transaction(utime: int, data: str, transaction_id: <a href="#TransactionID">toncenter.client.TransactionID</a>, fee: str, storage_fee: str, other_fee: str, in_msg: <a href="#Message">toncenter.client.Message</a>, out_msgs: List[<a href="#Message">toncenter.client.Message</a>])</p>
+            <div class="docstring"><p>Transaction(utime: int, data: str, transaction_id: <a href="#TransactionID">toncenter.client.TransactionID</a>, fee: str, storage_fee: str, other_fee: str, out_msgs: List[<a href="#Message">toncenter.client.Message</a>], in_msg: Optional[<a href="#Message">toncenter.client.Message</a>] = None)</p>
 </div>
 
 
@@ -3014,9 +3047,19 @@
     fee: str,
     storage_fee: str,
     other_fee: str,
-    in_msg: <a href="#Message">toncenter.client.Message</a>,
-    out_msgs: List[<a href="#Message">toncenter.client.Message</a>]
+    out_msgs: List[<a href="#Message">toncenter.client.Message</a>],
+    in_msg: Optional[<a href="#Message">toncenter.client.Message</a>] = None
 )</span>
+    </div>
+
+    
+    
+
+                            </div>
+                            <div id="Transaction.in_msg" class="classattr">
+                                            <div class="attr variable"><a class="headerlink" href="#Transaction.in_msg">#&nbsp;&nbsp</a>
+
+        <span class="name">in_msg</span><span class="annotation">: Optional[<a href="#Message">toncenter.client.Message</a>]</span><span class="default_value"> = None</span>
     </div>
 
     
@@ -5456,6 +5499,17 @@
         <span class="k">if</span> <span class="n">block_id</span><span class="o">.</span><span class="n">file_hash</span><span class="p">:</span>
             <span class="n">args</span><span class="p">[</span><span class="s2">&quot;file_hash&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">block_id</span><span class="o">.</span><span class="n">file_hash</span>
         <span class="k">return</span> <span class="n">BlockHeader</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;getBlockHeader&quot;</span><span class="p">,</span> <span class="n">args</span><span class="p">))</span>
+    
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">get_masterchain_block_header</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seqno</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BlockHeader</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get metadata of a given seqno, in the master chain.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;workchain&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+            <span class="s2">&quot;shard&quot;</span><span class="p">:</span> <span class="n">STANDARD_SHARD</span><span class="p">,</span>
+            <span class="s2">&quot;seqno&quot;</span><span class="p">:</span> <span class="n">seqno</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="n">BlockHeader</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;getBlockHeader&quot;</span><span class="p">,</span> <span class="n">args</span><span class="p">))</span>
 
     <span class="k">async</span> <span class="k">def</span> <span class="nf">try_locate_transaction</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">destination</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">created_lt</span><span class="p">:</span> <span class="nb">int</span>
@@ -6190,6 +6244,35 @@ This method parses contract state and currently supports more wallet types than 
         </details>
 
             <div class="docstring"><p>Get metadata of a given block.</p>
+</div>
+
+
+                            </div>
+                            <div id="Client.get_masterchain_block_header" class="classattr">
+                                        <div class="attr function"><a class="headerlink" href="#Client.get_masterchain_block_header">#&nbsp;&nbsp</a>
+
+        
+            <span class="def">async def</span>
+            <span class="name">get_masterchain_block_header</span><span class="signature">(self, seqno: int) -&gt; <a href="#BlockHeader">toncenter.client.BlockHeader</a></span>:
+    </div>
+
+            <details>
+            <summary>View Source</summary>
+            <div class="pdoc-code codehilite"><pre><span></span>    <span class="k">async</span> <span class="k">def</span> <span class="nf">get_masterchain_block_header</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seqno</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BlockHeader</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get metadata of a given seqno, in the master chain.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;workchain&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+            <span class="s2">&quot;shard&quot;</span><span class="p">:</span> <span class="n">STANDARD_SHARD</span><span class="p">,</span>
+            <span class="s2">&quot;seqno&quot;</span><span class="p">:</span> <span class="n">seqno</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="n">BlockHeader</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;getBlockHeader&quot;</span><span class="p">,</span> <span class="n">args</span><span class="p">))</span>
+</pre></div>
+
+        </details>
+
+            <div class="docstring"><p>Get metadata of a given seqno, in the master chain.</p>
 </div>
 
 
