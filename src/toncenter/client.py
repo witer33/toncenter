@@ -70,8 +70,9 @@ class WalletState:
 @dataclass_json
 @dataclass
 class MessageData:
-    body: str
-    init_state: str
+    body: Optional[str] = None
+    init_state: Optional[str] = None
+    text: Optional[str] = None
 
 
 @dataclass_json

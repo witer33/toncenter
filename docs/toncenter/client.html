@@ -193,6 +193,15 @@
                                 <a class="function" href="#MessageData.__init__">MessageData</a>
                         </li>
                         <li>
+                                <a class="variable" href="#MessageData.body">body</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#MessageData.init_state">init_state</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#MessageData.text">text</a>
+                        </li>
+                        <li>
                                 <a class="function" href="#MessageData.to_json">to_json</a>
                         </li>
                         <li>
@@ -640,8 +649,9 @@
 <span class="nd">@dataclass_json</span>
 <span class="nd">@dataclass</span>
 <span class="k">class</span> <span class="nc">MessageData</span><span class="p">:</span>
-    <span class="n">body</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">init_state</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">body</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">init_state</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">text</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
 
 <span class="nd">@dataclass_json</span>
@@ -2512,13 +2522,14 @@
             <div class="pdoc-code codehilite"><pre><span></span><span class="nd">@dataclass_json</span>
 <span class="nd">@dataclass</span>
 <span class="k">class</span> <span class="nc">MessageData</span><span class="p">:</span>
-    <span class="n">body</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">init_state</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">body</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">init_state</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">text</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 </pre></div>
 
         </details>
 
-            <div class="docstring"><p>MessageData(body: str, init_state: str)</p>
+            <div class="docstring"><p>MessageData(body: Optional[str] = None, init_state: Optional[str] = None, text: Optional[str] = None)</p>
 </div>
 
 
@@ -2526,7 +2537,41 @@
                                         <div class="attr function"><a class="headerlink" href="#MessageData.__init__">#&nbsp;&nbsp</a>
 
         
-            <span class="name">MessageData</span><span class="signature">(body: str, init_state: str)</span>
+            <span class="name">MessageData</span><span class="signature">(
+    body: Optional[str] = None,
+    init_state: Optional[str] = None,
+    text: Optional[str] = None
+)</span>
+    </div>
+
+    
+    
+
+                            </div>
+                            <div id="MessageData.body" class="classattr">
+                                            <div class="attr variable"><a class="headerlink" href="#MessageData.body">#&nbsp;&nbsp</a>
+
+        <span class="name">body</span><span class="annotation">: Optional[str]</span><span class="default_value"> = None</span>
+    </div>
+
+    
+    
+
+                            </div>
+                            <div id="MessageData.init_state" class="classattr">
+                                            <div class="attr variable"><a class="headerlink" href="#MessageData.init_state">#&nbsp;&nbsp</a>
+
+        <span class="name">init_state</span><span class="annotation">: Optional[str]</span><span class="default_value"> = None</span>
+    </div>
+
+    
+    
+
+                            </div>
+                            <div id="MessageData.text" class="classattr">
+                                            <div class="attr variable"><a class="headerlink" href="#MessageData.text">#&nbsp;&nbsp</a>
+
+        <span class="name">text</span><span class="annotation">: Optional[str]</span><span class="default_value"> = None</span>
     </div>
 
     
